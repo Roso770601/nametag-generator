@@ -1,4 +1,7 @@
 import tkinter as tk
+import json
+import os
+
 from PIL import Image, ImageTk
 
 
@@ -82,6 +85,8 @@ class PreviewCanvas(tk.Canvas):
 
         self.enable_drag()
         self.enable_edit()
+        
+        self.load_layout()
 
 
     # ======================================================
@@ -360,9 +365,89 @@ class PreviewCanvas(tk.Canvas):
                     self.no_x,
                     self.no_y
                 )
+                self.save_layout()
+            self.drag_item = None
+    # ======================================================
+    # SAVE LAYOUT
+    # ======================================================
 
-        self.drag_item = None
+    def save_layout(self):
 
+        layout = {
+
+            "nama": {
+                "x": self.name_x,
+                "y": self.name_y
+            },
+
+            "absen": {
+                "x": self.no_x,
+                "y": self.no_y
+            }
+
+        }
+
+
+        os.makedirs(
+            "data",
+            exist_ok=True
+        )
+
+
+        with open(
+            "data/layout.json",
+            "w"
+        ) as file:
+
+            json.dump(
+                layout,
+                file,
+                indent=4
+            )
+
+
+        print(
+            "LAYOUT TERSIMPAN"
+        )
+        
+        
+            # ======================================================
+    # LOAD LAYOUT
+    # ======================================================
+
+    def load_layout(self):
+
+        filename = "data/layout.json"
+
+
+        if not os.path.exists(filename):
+
+            return
+
+
+        with open(
+            filename,
+            "r"
+        ) as file:
+
+            layout = json.load(file)
+
+
+        if "nama" in layout:
+
+            self.name_x = layout["nama"]["x"]
+            self.name_y = layout["nama"]["y"]
+
+
+        if "absen" in layout:
+
+            self.no_x = layout["absen"]["x"]
+            self.no_y = layout["absen"]["y"]
+
+
+        print(
+            "LAYOUT DIMUAT"
+        )
      # ======================================================
     # TEXT EDITOR
     # ======================================================
