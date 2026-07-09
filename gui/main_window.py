@@ -12,6 +12,10 @@ class MainWindow(tk.Tk):
         self.geometry("1200x750")
         self.minsize(1000, 650)
 
+        # =============================
+        # Data
+        # =============================
+
         self.template_path = ""
         self.excel_path = ""
         self.font_path = ""
@@ -19,58 +23,61 @@ class MainWindow(tk.Tk):
         self.preview_image = None
         self.original_image = None
 
+        # Posisi sementara
+        self.name_x = 500
+        self.name_y = 320
+
+        self.no_x = 500
+        self.no_y = 380
+
         self.build_ui()
 
-    # =====================================================
+    # =========================================================
 
     def build_ui(self):
-
-        # ---------------- Toolbar ----------------
 
         toolbar = ttk.Frame(self, padding=10)
         toolbar.pack(fill="x")
 
         ttk.Button(
             toolbar,
-            text="📷 Pilih Template",
+            text="📷 Template",
             command=self.open_template
         ).pack(side="left", padx=5)
 
         ttk.Button(
             toolbar,
-            text="📊 Pilih Excel",
+            text="📊 Excel",
             command=self.open_excel
         ).pack(side="left", padx=5)
 
         ttk.Button(
             toolbar,
-            text="🔤 Pilih Font",
+            text="🔤 Font",
             command=self.open_font
         ).pack(side="left", padx=5)
 
-        # ---------------- Preview ----------------
+        # =========================================
 
         self.preview_frame = ttk.Frame(self)
-        self.preview_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.preview_frame.pack(
+            fill="both",
+            expand=True,
+            padx=10,
+            pady=10
+        )
 
         self.canvas = tk.Canvas(
             self.preview_frame,
             bg="#DDDDDD",
             highlightthickness=1,
-            highlightbackground="#888888"
+            highlightbackground="#999999"
         )
 
-        self.canvas.pack(fill="both", expand=True)
-
-        self.canvas.create_text(
-            600,
-            300,
-            text="PILIH TEMPLATE",
-            font=("Arial", 28, "bold"),
-            fill="gray"
+        self.canvas.pack(
+            fill="both",
+            expand=True
         )
-
-        # ---------------- Status ----------------
 
         self.status = ttk.Label(
             self,
@@ -78,51 +85,99 @@ class MainWindow(tk.Tk):
             anchor="w"
         )
 
-        self.status.pack(fill="x", side="bottom")
+        self.status.pack(
+            fill="x",
+            side="bottom"
+        )
 
-        # jika window di-resize, preview ikut menyesuaikan
-        self.canvas.bind("<Configure>", self.on_canvas_resize)
+        self.canvas.bind(
+            "<Configure>",
+            self.on_canvas_resize
+        )
 
-    # =====================================================
+    # =========================================================
 
     def on_canvas_resize(self, event):
 
         if self.original_image is not None:
-            self.show_template()
+            self.draw_preview()
 
-    # =====================================================
+    # =========================================================
 
-    def show_template(self):
+    def draw_preview(self):
+
+        self.canvas.delete("all")
 
         if self.original_image is None:
+            self.canvas.create_text(
+                600,
+                300,
+                text="PILIH TEMPLATE",
+                font=("Arial", 28, "bold"),
+                fill="gray"
+            )
             return
 
         image = self.original_image.copy()
 
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-
-        if canvas_width < 50:
-            return
-
-        if canvas_height < 50:
-            return
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
 
         image.thumbnail(
-            (canvas_width - 20, canvas_height - 20)
+            (cw - 20, ch - 20)
         )
 
         self.preview_image = ImageTk.PhotoImage(image)
 
-        self.canvas.delete("all")
-
         self.canvas.create_image(
-            canvas_width // 2,
-            canvas_height // 2,
+            cw // 2,
+            ch // 2,
             image=self.preview_image
         )
 
-    # =====================================================
+        # =============================
+        # Hitung posisi tengah gambar
+        # =============================
+
+        img_w = image.width
+        img_h = image.height
+
+        left = (cw - img_w) // 2
+        top = (ch - img_h) // 2
+
+        # Simpan supaya nanti Sprint 4
+        self.image_left = left
+        self.image_top = top
+        self.image_width = img_w
+        self.image_height = img_h
+
+        # =============================
+        # Nama
+        # =============================
+
+        self.canvas.create_text(
+            left + self.name_x,
+            top + self.name_y,
+            text="NAMA SISWA",
+            font=("Arial", 34, "bold"),
+            fill="black",
+            tags="nama"
+        )
+
+        # =============================
+        # No Absen
+        # =============================
+
+        self.canvas.create_text(
+            left + self.no_x,
+            top + self.no_y,
+            text="NO. 01",
+            font=("Arial", 28, "bold"),
+            fill="blue",
+            tags="absen"
+        )
+
+    # =========================================================
 
     def open_template(self):
 
@@ -137,15 +192,16 @@ class MainWindow(tk.Tk):
 
             self.template_path = filename
 
-            self.original_image = Image.open(filename)
+            self.original_image = Image.open(
+                filename
+            )
 
             self.status.config(
                 text=f"Template : {filename}"
             )
 
-            self.show_template()
-
-    # =====================================================
+            self.draw_preview()
+    # =========================================================
 
     def open_excel(self):
 
@@ -164,7 +220,7 @@ class MainWindow(tk.Tk):
                 text=f"Excel : {filename}"
             )
 
-    # =====================================================
+    # =========================================================
 
     def open_font(self):
 
@@ -182,3 +238,22 @@ class MainWindow(tk.Tk):
             self.status.config(
                 text=f"Font : {filename}"
             )
+
+    # =========================================================
+    # Sprint 4 Preparation
+    # =========================================================
+
+    def refresh(self):
+        self.draw_preview()
+
+    # =========================================================
+
+    def reset_preview(self):
+
+        self.name_x = 500
+        self.name_y = 320
+
+        self.no_x = 500
+        self.no_y = 380
+
+        self.draw_preview()            
