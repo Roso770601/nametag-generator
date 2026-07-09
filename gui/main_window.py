@@ -57,7 +57,7 @@ class MainWindow(tk.Tk):
             text="🔤 Font",
             command=self.open_font
         ).pack(side="left", padx=5)
-
+        
         # =========================================
 
         self.preview_frame = ttk.Frame(self)
@@ -76,6 +76,19 @@ class MainWindow(tk.Tk):
             fill="both",
             expand=True
         )
+        
+        ttk.Button(
+            toolbar,
+            text="💾 Simpan Layout",
+            command=self.canvas.save_layout
+        ).pack(side="left", padx=5)
+
+
+        ttk.Button(
+            toolbar,
+            text="🔄 Reset Layout",
+            command=self.canvas.reset_layout
+        ).pack(side="left", padx=5)
 
         self.status = ttk.Label(
             self,
