@@ -328,7 +328,38 @@ class PreviewCanvas(tk.Canvas):
     # ======================================================
 
 
-    def stop_drag(self,event):
+    def stop_drag(self, event):
+
+        if self.drag_item:
+
+            coords = self.coords(self.drag_item)
+
+            x = coords[0] - self.image_left
+            y = coords[1] - self.image_top
+
+            tags = self.gettags(self.drag_item)
+
+            if "nama" in tags:
+
+                self.name_x = x
+                self.name_y = y
+
+                print(
+                    "POSISI NAMA:",
+                    self.name_x,
+                    self.name_y
+                )
+
+            elif "absen" in tags:
+
+                self.no_x = x
+                self.no_y = y
+
+                print(
+                    "POSISI ABSEN:",
+                    self.no_x,
+                    self.no_y
+                )
 
         self.drag_item = None
 
