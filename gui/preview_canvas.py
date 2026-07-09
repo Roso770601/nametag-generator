@@ -56,6 +56,15 @@ class PreviewCanvas(tk.Canvas):
         self.start_x = 0
         self.start_y = 0
 
+        # ==========================
+        # Text Editor
+        # ==========================
+
+        self.name_text = "NAMA SISWA"
+        self.no_text = "NO. 01"
+
+        self.edit_entry = None
+
 
         # ==========================
         # Event Resize
@@ -72,6 +81,7 @@ class PreviewCanvas(tk.Canvas):
         # ==========================
 
         self.enable_drag()
+        self.enable_edit()
 
 
     # ======================================================
@@ -166,10 +176,10 @@ class PreviewCanvas(tk.Canvas):
 
         self.name_item = self.create_text(
 
-            self.image_left + self.name_x,
-            self.image_top + self.name_y,
+        self.image_left + self.name_x,
+        self.image_top + self.name_y,
 
-            text="NAMA SISWA",
+        text=self.name_text,
 
             font=(
                 "Arial",
@@ -185,6 +195,30 @@ class PreviewCanvas(tk.Canvas):
 
 
 
+        # ======================================================
+
+    def draw_name(self):
+
+        self.name_item = self.create_text(
+
+            self.image_left + self.name_x,
+            self.image_top + self.name_y,
+
+            text=self.name_text,
+
+            font=(
+                "Arial",
+                34,
+                "bold"
+            ),
+
+            fill="black",
+
+            tags=("nama",)
+
+        )
+
+
     # ======================================================
 
     def draw_absen(self):
@@ -194,7 +228,7 @@ class PreviewCanvas(tk.Canvas):
             self.image_left + self.no_x,
             self.image_top + self.no_y,
 
-            text="NO. 01",
+            text=self.no_text,
 
             font=(
                 "Arial",
@@ -297,3 +331,105 @@ class PreviewCanvas(tk.Canvas):
     def stop_drag(self,event):
 
         self.drag_item = None
+
+     # ======================================================
+    # TEXT EDITOR
+    # ======================================================
+
+    def enable_edit(self):
+
+        self.tag_bind(
+            "nama",
+            "<Double-Button-1>",
+            self.edit_name
+        )
+
+        self.tag_bind(
+            "absen",
+            "<Double-Button-1>",
+            self.edit_absen
+        )
+
+
+    # ======================================================
+
+    def create_editor(self, x, y, value, target):
+
+        if self.edit_entry:
+            self.edit_entry.destroy()
+
+
+        self.edit_entry = tk.Entry(
+            self.master,
+            font=("Arial",20)
+        )
+
+
+        self.edit_entry.insert(
+            0,
+            value
+        )
+
+
+        self.edit_entry.place(
+            x=x,
+            y=y
+        )
+
+
+        self.edit_entry.focus()
+
+
+        self.edit_entry.bind(
+            "<Return>",
+            lambda e: self.save_text(target)
+        )
+
+
+    # ======================================================
+
+    def edit_name(self,event):
+
+        self.create_editor(
+            event.x,
+            event.y,
+            self.name_text,
+            "nama"
+        )
+
+
+    # ======================================================
+
+    def edit_absen(self,event):
+
+        self.create_editor(
+            event.x,
+            event.y,
+            self.no_text,
+            "absen"
+        )
+
+
+    # ======================================================
+
+    def save_text(self,target):
+
+        value = self.edit_entry.get()
+
+
+        if target == "nama":
+
+            self.name_text = value
+
+
+        if target == "absen":
+
+            self.no_text = value
+
+
+        self.edit_entry.destroy()
+
+        self.edit_entry = None
+
+
+        self.draw()
