@@ -24,13 +24,6 @@ class MainWindow(tk.Tk):
         self.preview_image = None
         self.original_image = None
 
-        # Posisi sementara
-        self.name_x = 500
-        self.name_y = 320
-
-        self.no_x = 500
-        self.no_y = 380
-
         self.build_ui()
 
     # =========================================================
@@ -257,10 +250,4 @@ class MainWindow(tk.Tk):
 
     def reset_preview(self):
 
-        self.canvas.name_x = 500
-        self.canvas.name_y = 320
-
-        self.canvas.no_x = 500
-        self.canvas.no_y = 380
-
-        self.canvas.draw()            
+        self.canvas.reset_layout()        
