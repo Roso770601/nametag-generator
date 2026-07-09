@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 from PIL import Image
 from gui.preview_canvas import PreviewCanvas
+import openpyxl
 
 
 class MainWindow(tk.Tk):
@@ -20,6 +21,8 @@ class MainWindow(tk.Tk):
         self.template_path = ""
         self.excel_path = ""
         self.font_path = ""
+        
+        self.students = []
 
         self.preview_image = None
         self.original_image = None
@@ -215,11 +218,48 @@ class MainWindow(tk.Tk):
         if filename:
 
             self.excel_path = filename
+            self.load_excel(filename)
+            
+            self.update_student_preview()
 
             self.status.config(
-                text=f"Excel : {filename}"
+                text=f"Siswa : {len(self.students)} data"
             )
 
+    # =========================================================
+    def load_excel(self, filename):
+        self.students = []
+        workbook = openpyxl.load_workbook(
+            filename
+        )
+
+
+        sheet = workbook.active
+
+
+        for row in sheet.iter_rows(
+            min_row=2,
+            values_only=True
+        ):
+
+            nama = row[0]
+            absen = row[1]
+
+
+            if nama:
+
+                self.students.append(
+                    {
+                        "nama": str(nama),
+                        "absen": str(absen)
+                    }
+                )
+
+
+        print(
+            "DATA SISWA:",
+            self.students
+        )
     # =========================================================
 
     def open_font(self):
@@ -250,4 +290,33 @@ class MainWindow(tk.Tk):
 
     def reset_preview(self):
 
-        self.canvas.reset_layout()        
+        self.canvas.reset_layout()
+        
+    # =========================================================
+    # UPDATE DATA SISWA KE CANVAS
+    # =========================================================
+
+    def update_student_preview(self):
+
+        if not self.students:
+            return
+
+
+        student = self.students[0]
+
+
+        self.canvas.name_text = student["nama"]
+
+        self.canvas.no_text = str(
+            student["absen"]
+        )
+
+
+        self.canvas.draw()
+
+
+        print(
+            "PREVIEW UPDATE:",
+            self.canvas.name_text,
+            self.canvas.no_text
+        )
