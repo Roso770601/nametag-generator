@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
-from PIL import Image, ImageTk
+from PIL import Image
+from gui.preview_canvas import PreviewCanvas
 
 
 class MainWindow(tk.Tk):
@@ -67,11 +68,8 @@ class MainWindow(tk.Tk):
             pady=10
         )
 
-        self.canvas = tk.Canvas(
-            self.preview_frame,
-            bg="#DDDDDD",
-            highlightthickness=1,
-            highlightbackground="#999999"
+        self.canvas = PreviewCanvas(
+            self.preview_frame
         )
 
         self.canvas.pack(
@@ -90,11 +88,7 @@ class MainWindow(tk.Tk):
             side="bottom"
         )
 
-        self.canvas.bind(
-            "<Configure>",
-            self.on_canvas_resize
-        )
-
+        
     # =========================================================
 
     def on_canvas_resize(self, event):
@@ -192,7 +186,7 @@ class MainWindow(tk.Tk):
 
             self.template_path = filename
 
-            self.original_image = Image.open(
+            self.canvas.load_template(
                 filename
             )
 
@@ -200,7 +194,7 @@ class MainWindow(tk.Tk):
                 text=f"Template : {filename}"
             )
 
-            self.draw_preview()
+            
     # =========================================================
 
     def open_excel(self):
@@ -244,16 +238,16 @@ class MainWindow(tk.Tk):
     # =========================================================
 
     def refresh(self):
-        self.draw_preview()
+        self.canvas.draw()
 
     # =========================================================
 
     def reset_preview(self):
 
-        self.name_x = 500
-        self.name_y = 320
+        self.canvas.name_x = 500
+        self.canvas.name_y = 320
 
-        self.no_x = 500
-        self.no_y = 380
+        self.canvas.no_x = 500
+        self.canvas.no_y = 380
 
-        self.draw_preview()            
+        self.canvas.draw()            
