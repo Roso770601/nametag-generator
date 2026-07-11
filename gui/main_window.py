@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog
 from PIL import Image
 from gui.preview_canvas import PreviewCanvas
 import openpyxl
+from core.exporter import NameTagExporter
 
 
 class MainWindow(tk.Tk):
@@ -23,6 +24,8 @@ class MainWindow(tk.Tk):
         self.font_path = ""
         
         self.students = []
+        
+        self.exporter = NameTagExporter()
 
         self.preview_image = None
         self.original_image = None
@@ -54,6 +57,12 @@ class MainWindow(tk.Tk):
             command=self.open_font
         ).pack(side="left", padx=5)
         
+        ttk.Button(
+            toolbar,
+            text="🧪 Test Export",
+            command=self.test_export
+        ).pack(side="left", padx=5)
+        
         # =========================================
 
         self.preview_frame = ttk.Frame(self)
@@ -78,6 +87,12 @@ class MainWindow(tk.Tk):
             text="💾 Simpan Layout",
             command=self.canvas.save_layout
         ).pack(side="left", padx=5)
+        
+        ttk.Button(
+            toolbar,
+            text="🧪 Test Export",
+            command=self.test_export
+        ).pack(side="left", padx=5)
 
 
         ttk.Button(
@@ -96,92 +111,6 @@ class MainWindow(tk.Tk):
             fill="x",
             side="bottom"
         )
-
-        
-    # =========================================================
-
-    def on_canvas_resize(self, event):
-
-        if self.original_image is not None:
-            self.draw_preview()
-
-    # =========================================================
-
-    def draw_preview(self):
-
-        self.canvas.delete("all")
-
-        if self.original_image is None:
-            self.canvas.create_text(
-                600,
-                300,
-                text="PILIH TEMPLATE",
-                font=("Arial", 28, "bold"),
-                fill="gray"
-            )
-            return
-
-        image = self.original_image.copy()
-
-        cw = self.canvas.winfo_width()
-        ch = self.canvas.winfo_height()
-
-        image.thumbnail(
-            (cw - 20, ch - 20)
-        )
-
-        self.preview_image = ImageTk.PhotoImage(image)
-
-        self.canvas.create_image(
-            cw // 2,
-            ch // 2,
-            image=self.preview_image
-        )
-
-        # =============================
-        # Hitung posisi tengah gambar
-        # =============================
-
-        img_w = image.width
-        img_h = image.height
-
-        left = (cw - img_w) // 2
-        top = (ch - img_h) // 2
-
-        # Simpan supaya nanti Sprint 4
-        self.image_left = left
-        self.image_top = top
-        self.image_width = img_w
-        self.image_height = img_h
-
-        # =============================
-        # Nama
-        # =============================
-
-        self.canvas.create_text(
-            left + self.name_x,
-            top + self.name_y,
-            text="NAMA SISWA",
-            font=("Arial", 34, "bold"),
-            fill="black",
-            tags="nama"
-        )
-
-        # =============================
-        # No Absen
-        # =============================
-
-        self.canvas.create_text(
-            left + self.no_x,
-            top + self.no_y,
-            text="NO. 01",
-            font=("Arial", 28, "bold"),
-            fill="blue",
-            tags="absen"
-        )
-
-    # =========================================================
-
     def open_template(self):
 
         filename = filedialog.askopenfilename(
@@ -274,6 +203,7 @@ class MainWindow(tk.Tk):
         if filename:
 
             self.font_path = filename
+            self.test_export()
 
             self.status.config(
                 text=f"Font : {filename}"
@@ -320,3 +250,37 @@ class MainWindow(tk.Tk):
             self.canvas.name_text,
             self.canvas.no_text
         )
+    def test_export(self):
+
+        if not self.template_path:
+            return
+        if not self.font_path:
+            self.status.config(
+            text="Pilih font dahulu."
+        )
+            return
+        print("=== TEST EXPORT ===")
+        print("CANVAS NAME :", self.canvas.name_text)
+        print("CANVAS ABSEN :", self.canvas.no_text)
+        print("STUDENTS :", len(self.students))
+        layout = self.canvas.get_layout()
+        
+        self.exporter.export(
+            template_path=self.template_path,
+            output_path="output/test.png",
+
+            name_x=layout["nama"]["x"],
+            name_y=layout["nama"]["y"],
+            absen_x=layout["absen"]["x"],
+            absen_y=layout["absen"]["y"],
+
+            font_path=self.font_path,
+            
+            name_font_size=self.canvas.name_font_size,
+            absen_font_size=self.canvas.absen_font_size
+        )
+
+        self.status.config(
+            text="Export selesai."
+        )
+        print("=== EXPORT SELESAI ===")
