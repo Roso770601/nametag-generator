@@ -1,619 +1,203 @@
 import json
 import os
 import tkinter as tk
+from PIL import Image, ImageTk, ImageDraw, ImageFont
 
-from PIL import Image
-from PIL import ImageTk
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
 class PreviewCanvas(tk.Canvas):
 
-    """
-    Preview Canvas
-    -----------------------
-    Menampilkan template
-    Drag object
-    Resize font
-    Edit text
-    Simpan layout
-    """
-
     def __init__(self, master):
 
-        super().__init__(
-            master,
-            bg="#DDDDDD",
-            highlightthickness=1,
-            highlightbackground="#999999"
-        )
+        super().__init__(master, bg="#DDDDDD")
 
-        # ==================================================
-        # TEMPLATE
-        # ==================================================
+        # ================= FONT =================
+        self.font_path = os.path.join(BASE_DIR, "fonts", "Poppins-Bold.ttf")
 
+        # ================= IMAGE =================
         self.original_image = None
         self.preview_image = None
 
         self.image_left = 0
         self.image_top = 0
-
         self.image_width = 0
         self.image_height = 0
 
         self.scale_x = 1.0
         self.scale_y = 1.0
 
-        # ==================================================
-        # TEXT
-        # ==================================================
-
+        # ================= TEXT =================
         self.name_text = "NAMA SISWA"
         self.no_text = "NO. 01"
 
-        # ==================================================
-        # POSISI
-        # (koordinat gambar ASLI)
-        # ==================================================
-
+        # ================= POSITION =================
         self.name_x = 500
         self.name_y = 320
 
         self.no_x = 500
         self.no_y = 380
 
-        # ==================================================
-        # FONT
-        # ==================================================
-
+        # ================= FONT SIZE =================
         self.name_font_size = 72
         self.absen_font_size = 56
 
-        # ==================================================
-        # ITEM
-        # ==================================================
-
-        self.name_item = None
-        self.no_item = None
-
-        # ==================================================
-        # SELECT
-        # ==================================================
-
+        # ================= STATE =================
+        self.drag_target = None
+        self.offset_x = 0
+        self.offset_y = 0
         self.selected_object = None
-
-        # ==================================================
-        # DRAG
-        # ==================================================
-
-        self.drag_item = None
-
-        self.start_x = 0
-        self.start_y = 0
-
-        # ==================================================
-        # EDIT
-        # ==================================================
 
         self.edit_entry = None
 
-        # ==================================================
-        # EVENT
-        # ==================================================
-
-        self.bind(
-            "<Configure>",
-            self.on_resize
-        )
-
-        self.bind_all(
-            "<MouseWheel>",
-            self.change_font_size
-        )
+        # ================= EVENT =================
+        self.bind("<Configure>", self.on_resize)
+        self.bind("<Button-1>", self.on_click)
+        self.bind("<B1-Motion>", self.on_drag)
+        self.bind_all("<MouseWheel>", self.change_font_size)
+        self.bind("<Double-Button-1>", self.on_double_click)
 
         self.load_layout()
 
-        self.enable_drag()
-        self.enable_edit()
-
-    # ==================================================
-    # TEMPLATE
-    # ==================================================
-
+    # ================= TEMPLATE =================
     def load_template(self, filename):
-
         self.original_image = Image.open(filename)
-
         self.draw()
 
-    # ==================================================
-
     def on_resize(self, event):
-
         if self.original_image:
             self.draw()
-       # ==================================================
-    # DRAW
-    # ==================================================
 
+    # ================= DRAW =================
     def draw(self):
 
         self.delete("all")
 
-        if self.original_image is None:
-
-            self.create_text(
-                self.winfo_width() // 2,
-                self.winfo_height() // 2,
-                text="PILIH TEMPLATE",
-                font=("Arial", 28, "bold"),
-                fill="gray"
-            )
-
+        if not self.original_image:
             return
 
         image = self.original_image.copy()
+        draw = ImageDraw.Draw(image)
 
-        canvas_width = max(self.winfo_width(), 20)
-        canvas_height = max(self.winfo_height(), 20)
+        name_font = ImageFont.truetype(self.font_path, int(self.name_font_size))
+        absen_font = ImageFont.truetype(self.font_path, int(self.absen_font_size))
 
-        image.thumbnail(
-            (
-                canvas_width - 20,
-                canvas_height - 20
-            )
-        )
+        draw.text((self.name_x, self.name_y), self.name_text, fill="black", font=name_font, anchor="mm")
+        draw.text((self.no_x, self.no_y), self.no_text, fill="black", font=absen_font, anchor="mm")
+
+        canvas_w = max(self.winfo_width(), 20)
+        canvas_h = max(self.winfo_height(), 20)
+
+        image.thumbnail((canvas_w - 20, canvas_h - 20))
 
         self.preview_image = ImageTk.PhotoImage(image)
 
         self.image_width = image.width
         self.image_height = image.height
 
-        self.scale_x = (
-            self.image_width /
-            self.original_image.width
-        )
+        self.scale_x = self.image_width / self.original_image.width
+        self.scale_y = self.image_height / self.original_image.height
 
-        self.scale_y = (
-            self.image_height /
-            self.original_image.height
-        )
+        self.image_left = (canvas_w - self.image_width) // 2
+        self.image_top = (canvas_h - self.image_height) // 2
 
-        self.image_left = (
-            canvas_width - self.image_width
-        ) // 2
+        self.create_image(canvas_w // 2, canvas_h // 2, image=self.preview_image)
 
-        self.image_top = (
-            canvas_height - self.image_height
-        ) // 2
+        # 🔥 highlight
+        self.draw_selection_box()
 
-        self.create_image(
-            canvas_width // 2,
-            canvas_height // 2,
-            image=self.preview_image
-        )
+    # ================= CLICK =================
+    def on_click(self, event):
 
-        self.draw_name()
-        self.draw_absen()
-        
-        self.enable_drag()
-
-    # ==================================================
-    # DRAW NAME
-    # ==================================================
-
-    def draw_name(self):
-
-        x = self.image_left + (self.name_x * self.scale_x)
-        y = self.image_top + (self.name_y * self.scale_y)
-
-        preview_size = max(
-            int(self.name_font_size * self.scale_y),
-            8
-        )
-
-        color = (
-            "red"
-            if self.selected_object == "nama"
-            else "black"
-        )
-
-        self.name_item = self.create_text(
-            x,
-            y,
-            text=self.name_text,
-            font=(
-                "Arial",
-                preview_size,
-                "bold"
-            ),
-            fill=color,
-            tags=("nama",)
-        )
-
-    # ==================================================
-    # DRAW ABSEN
-    # ==================================================
-
-    def draw_absen(self):
-
-        x = self.image_left + (self.no_x * self.scale_x)
-        y = self.image_top + (self.no_y * self.scale_y)
-
-        preview_size = max(
-            int(self.absen_font_size * self.scale_y),
-            8
-        )
-
-        color = (
-            "red"
-            if self.selected_object == "absen"
-            else "blue"
-        )
-
-        self.no_item = self.create_text(
-            x,
-            y,
-            text=self.no_text,
-            font=(
-                "Arial",
-                preview_size,
-                "bold"
-            ),
-            fill=color,
-            tags=("absen",)
-        )
-        # ==================================================
-    # DRAG SYSTEM
-    # ==================================================
-
-    def enable_drag(self):
-
-        for tag in ("nama", "absen"):
-
-            self.tag_bind(
-                tag,
-                "<ButtonPress-1>",
-                self.start_drag
-            )
-
-            self.tag_bind(
-                tag,
-                "<B1-Motion>",
-                self.drag
-            )
-
-            self.tag_bind(
-                tag,
-                "<ButtonRelease-1>",
-                self.stop_drag
-            )
-
-    # ==================================================
-
-    def start_drag(self, event):
-
-       print("START DRAG")
-
-       item = self.find_withtag("current")
-
-       print(item)
-
-       if not item:
-        return
-
-       self.drag_item = item[0]
-
-       tags = self.gettags(self.drag_item)
-
-       print(tags)
-
-       if "nama" in tags:
-        self.selected_object = "nama"
-
-       elif "absen" in tags:
-        self.selected_object = "absen"
-
-       self.start_x = event.x
-       self.start_y = event.y
-
-
-
-    # ==================================================
-
-    def drag(self, event):
-
-        if self.drag_item is None:
+        if not self.original_image:
             return
 
-        dx = event.x - self.start_x
-        dy = event.y - self.start_y
+        x = (event.x - self.image_left) / self.scale_x
+        y = (event.y - self.image_top) / self.scale_y
 
-        self.move(
-            self.drag_item,
-            dx,
-            dy
-        )
+        if abs(x - self.name_x) < 120 and abs(y - self.name_y) < 60:
+            self.drag_target = "name"
+            self.selected_object = "nama"
+            self.offset_x = self.name_x - x
+            self.offset_y = self.name_y - y
 
-        self.start_x = event.x
-        self.start_y = event.y
+        elif abs(x - self.no_x) < 120 and abs(y - self.no_y) < 60:
+            self.drag_target = "no"
+            self.selected_object = "absen"
+            self.offset_x = self.no_x - x
+            self.offset_y = self.no_y - y
 
-    # ==================================================
-
-    def stop_drag(self, event):
-
-        if self.drag_item is None:
-            return
-
-        coords = self.coords(self.drag_item)
-
-        preview_x = coords[0] - self.image_left
-        preview_y = coords[1] - self.image_top
-
-        original_x = preview_x / self.scale_x
-        original_y = preview_y / self.scale_y
-
-        tags = self.gettags(self.drag_item)
-
-        if "nama" in tags:
-
-            self.name_x = original_x
-            self.name_y = original_y
-
-        elif "absen" in tags:
-
-            self.no_x = original_x
-            self.no_y = original_y
-
-        self.drag_item = None
-
-        self.save_layout()
+        else:
+            self.drag_target = None
+            self.selected_object = None
 
         self.draw()
-        
-    # ==================================================
-    # FONT SIZE
-    # ==================================================
 
+    # ================= DRAG =================
+    def on_drag(self, event):
+
+        if self.drag_target is None:
+            return
+
+        x = (event.x - self.image_left) / self.scale_x
+        y = (event.y - self.image_top) / self.scale_y
+
+        if self.drag_target == "name":
+            self.name_x = x + self.offset_x
+            self.name_y = y + self.offset_y
+
+        elif self.drag_target == "no":
+            self.no_x = x + self.offset_x
+            self.no_y = y + self.offset_y
+
+        self.draw()
+
+    # ================= SCROLL =================
     def change_font_size(self, event):
 
         if self.selected_object is None:
             return
 
-        delta = 2 if event.delta > 0 else -2
+        delta = 4 if event.delta > 0 else -4
 
         if self.selected_object == "nama":
-
-            self.name_font_size = max(
-                8,
-                self.name_font_size + delta
-            )
+            self.name_font_size = max(8, self.name_font_size + delta)
 
         elif self.selected_object == "absen":
-
-            self.absen_font_size = max(
-                8,
-                self.absen_font_size + delta
-            )
+            self.absen_font_size = max(8, self.absen_font_size + delta)
 
         self.save_layout()
         self.draw()
 
-    # ==================================================
-    # SAVE LAYOUT
-    # ==================================================
+    # ================= DOUBLE CLICK EDIT =================
+    def on_double_click(self, event):
 
-    def save_layout(self):
-
-        layout = {
-
-            "nama":{
-
-                "x":self.name_x,
-                "y":self.name_y,
-                "font_size":self.name_font_size
-
-            },
-
-            "absen":{
-
-                "x":self.no_x,
-                "y":self.no_y,
-                "font_size":self.absen_font_size
-
-            }
-
-        }
-
-        os.makedirs(
-            "data",
-            exist_ok=True
-        )
-
-        with open(
-            "data/layout.json",
-            "w",
-            encoding="utf-8"
-        ) as file:
-
-            json.dump(
-                layout,
-                file,
-                indent=4
-            )
-
-    # ==================================================
-    # LOAD LAYOUT
-    # ==================================================
-
-    def load_layout(self):
-
-        filename = "data/layout.json"
-
-        if not os.path.exists(filename):
+        if self.selected_object is None:
             return
-
-        with open(
-            filename,
-            "r",
-            encoding="utf-8"
-        ) as file:
-
-            layout = json.load(file)
-
-        if "nama" in layout:
-
-            self.name_x = layout["nama"].get("x",500)
-            self.name_y = layout["nama"].get("y",320)
-            self.name_font_size = layout["nama"].get(
-                "font_size",
-                72
-            )
-
-        if "absen" in layout:
-
-            self.no_x = layout["absen"].get("x",500)
-            self.no_y = layout["absen"].get("y",380)
-            self.absen_font_size = layout["absen"].get(
-                "font_size",
-                56
-            )
-
-    # ==================================================
-    # RESET
-    # ==================================================
-
-    def reset_layout(self):
-
-        self.name_x = 500
-        self.name_y = 320
-
-        self.no_x = 500
-        self.no_y = 380
-
-        self.name_font_size = 72
-        self.absen_font_size = 56
-
-        self.save_layout()
-        self.draw()
-
-    # ==================================================
-    # DUMMY EDIT
-    # (sementara agar MainWindow tidak error)
-    # ==================================================
-
-    def enable_edit(self):
-        pass
-
-    # ==================================================
-
-    def get_layout(self):
-
-        return {
-
-            "nama":{
-
-                "x":self.name_x,
-                "y":self.name_y,
-                "font_size":self.name_font_size
-
-            },
-
-            "absen":{
-
-                "x":self.no_x,
-                "y":self.no_y,
-                "font_size":self.absen_font_size
-
-            }
-
-        }
-        # ======================================================
-    # TEXT EDITOR
-    # ======================================================
-
-    def enable_edit(self):
-
-        self.tag_bind(
-            "nama",
-            "<Double-Button-1>",
-            self.edit_name
-        )
-
-        self.tag_bind(
-            "absen",
-            "<Double-Button-1>",
-            self.edit_absen
-        )
-
-    # ======================================================
-
-    def create_editor(self, x, y, value, target):
 
         if self.edit_entry:
             self.edit_entry.destroy()
 
-        self.edit_entry = tk.Entry(
-            self.master,
-            font=("Arial", 20)
-        )
+        self.edit_entry = tk.Entry(self.master, font=("Arial", 18))
+        self.edit_entry.place(x=event.x, y=event.y)
 
-        self.edit_entry.insert(
-            0,
-            value
-        )
-
-        self.edit_entry.place(
-            x=x,
-            y=y
-        )
+        if self.selected_object == "nama":
+            self.edit_entry.insert(0, self.name_text)
+        else:
+            self.edit_entry.insert(0, self.no_text)
 
         self.edit_entry.focus()
 
-        self.edit_entry.bind(
-            "<Return>",
-            lambda e: self.save_text(target)
-        )
+        self.edit_entry.bind("<Return>", self.save_text)
+        self.edit_entry.bind("<Escape>", lambda e: self.edit_entry.destroy())
 
-        self.edit_entry.bind(
-            "<Escape>",
-            lambda e: self.cancel_edit()
-        )
-
-    # ======================================================
-
-    def edit_name(self, event):
-
-        self.create_editor(
-            event.x,
-            event.y,
-            self.name_text,
-            "nama"
-        )
-
-    # ======================================================
-
-    def edit_absen(self, event):
-
-        self.create_editor(
-            event.x,
-            event.y,
-            self.no_text,
-            "absen"
-        )
-
-    # ======================================================
-
-    def save_text(self, target):
-
-        if self.edit_entry is None:
-            return
+    def save_text(self, event):
 
         value = self.edit_entry.get().strip()
 
-        if target == "nama":
+        if self.selected_object == "nama":
             self.name_text = value
-
-        elif target == "absen":
+        else:
             self.no_text = value
 
         self.edit_entry.destroy()
@@ -621,31 +205,94 @@ class PreviewCanvas(tk.Canvas):
 
         self.draw()
 
-    # ======================================================
+    # ================= SELECTION BOX =================
+    def draw_selection_box(self):
 
-    def cancel_edit(self):
+        if not self.selected_object:
+            return
 
-        if self.edit_entry:
+        if self.selected_object == "nama":
+            x = self.name_x
+            y = self.name_y
+        else:
+            x = self.no_x
+            y = self.no_y
 
-            self.edit_entry.destroy()
-            self.edit_entry = None
-            
-    def get_layout(self):
+        # convert ke canvas
+        cx = self.image_left + x * self.scale_x
+        cy = self.image_top + y * self.scale_y
 
-        return {
+        self.create_rectangle(
+            cx - 80, cy - 40,
+            cx + 80, cy + 40,
+            outline="red",
+            width=2
+        )
 
-        "nama":{
+    # ================= RESET =================
+    def reset_layout(self):
 
-            "x":self.name_x,
-            "y":self.name_y
+        if self.original_image:
+            self.name_x = self.original_image.width // 2
+            self.name_y = int(self.original_image.height * 0.6)
 
-        },
+            self.no_x = self.original_image.width // 2
+            self.no_y = int(self.original_image.height * 0.7)
 
-        "absen":{
+        self.name_font_size = 72
+        self.absen_font_size = 56
 
-            "x":self.no_x,
-            "y":self.no_y
+        self.save_layout()
+        self.draw()
 
+    # ================= SAVE =================
+    def save_layout(self):
+
+        os.makedirs("data", exist_ok=True)
+
+        layout = {
+            "nama": {
+                "x": self.name_x,
+                "y": self.name_y,
+                "font_size": self.name_font_size
+            },
+            "absen": {
+                "x": self.no_x,
+                "y": self.no_y,
+                "font_size": self.absen_font_size
+            }
         }
 
-    }
+        with open("data/layout.json", "w", encoding="utf-8") as f:
+            json.dump(layout, f, indent=4)
+
+    # ================= LOAD =================
+    def load_layout(self):
+
+        if not os.path.exists("data/layout.json"):
+            return
+
+        with open("data/layout.json", "r", encoding="utf-8") as f:
+            layout = json.load(f)
+
+        self.name_x = layout.get("nama", {}).get("x", 500)
+        self.name_y = layout.get("nama", {}).get("y", 320)
+        self.name_font_size = layout.get("nama", {}).get("font_size", 72)
+
+        self.no_x = layout.get("absen", {}).get("x", 500)
+        self.no_y = layout.get("absen", {}).get("y", 380)
+        self.absen_font_size = layout.get("absen", {}).get("font_size", 56)
+    def get_layout(self):
+        return {
+            "nama": {
+                "x": self.name_x,
+                "y": self.name_y,
+                "font_size": self.name_font_size
+            },
+            "absen": {
+                "x": self.no_x,
+                "y": self.no_y,
+                "font_size": self.absen_font_size
+            },
+            "font_path": self.font_path
+        }

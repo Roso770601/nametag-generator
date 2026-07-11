@@ -1,6 +1,4 @@
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+from PIL import Image, ImageDraw, ImageFont
 import os
 
 
@@ -8,6 +6,17 @@ class NameTagExporter:
 
     def __init__(self):
         pass
+
+    def to_pixel(self, value, max_val):
+        """
+        Convert posisi:
+        - kalau <= 1 → dianggap RELATIVE (%)
+        - kalau > 1 → dianggap PIXEL
+        """
+        value = float(value)
+        if value <= 1:
+            return value * max_val
+        return value
 
     def export(
         self,
@@ -33,19 +42,27 @@ class NameTagExporter:
         image = Image.open(template_path).convert("RGBA")
         draw = ImageDraw.Draw(image)
 
+        img_w, img_h = image.size
+
+        # ==========================
+        # Convert posisi
+        # ==========================
+
+        name_px = float(name_x)
+        name_py = float(name_y)
+
+        absen_px = float(absen_x)
+        absen_py = float(absen_y)
+
         # ==========================
         # Font
         # ==========================
 
-        name_font = ImageFont.truetype(
-            font_path,
-            name_font_size
-        )
+        if not os.path.exists(font_path):
+            raise FileNotFoundError(f"Font tidak ditemukan: {font_path}")
 
-        absen_font = ImageFont.truetype(
-            font_path,
-            absen_font_size
-        )
+        name_font = ImageFont.truetype(font_path, int(name_font_size))
+        absen_font = ImageFont.truetype(font_path, int(absen_font_size))
 
         # ==========================
         # Debug
@@ -54,18 +71,22 @@ class NameTagExporter:
         print("\n========== EXPORT ==========")
         print("Template :", template_path)
         print("Output   :", output_path)
+        print("Ukuran   :", img_w, "x", img_h)
+
         print("Nama     :", name)
+        print("Nama PX  :", name_px, name_py)
+
         print("Absen    :", absen)
-        print("Nama XY  :", name_x, name_y)
-        print("Absen XY :", absen_x, absen_y)
+        print("Absen PX :", absen_px, absen_py)
+
         print("============================\n")
 
         # ==========================
-        # Nama
+        # DRAW NAMA
         # ==========================
 
         draw.text(
-            (float(name_x), float(name_y)),
+            (name_px, name_py),
             str(name),
             fill=name_color,
             font=name_font,
@@ -73,26 +94,24 @@ class NameTagExporter:
         )
 
         # ==========================
-        # No Absen
+        # DRAW ABSEN
         # ==========================
 
+        absen_text = f"No. {absen}" if absen else "-"
+
         draw.text(
-            (float(absen_x), float(absen_y)),
-            str(absen),
+            (absen_px, absen_py),
+            absen_text,
             fill=absen_color,
             font=absen_font,
             anchor="mm"
         )
 
         # ==========================
-        # Save
+        # SAVE
         # ==========================
 
-        os.makedirs(
-            os.path.dirname(output_path),
-            exist_ok=True
-        )
-
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         image.save(output_path)
 
-        print("EXPORT BERHASIL :", output_path)
+        print("✅ EXPORT BERHASIL :", output_path)

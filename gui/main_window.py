@@ -235,11 +235,7 @@ class MainWindow(tk.Tk):
 
 
         self.canvas.name_text = student["nama"]
-
-        self.canvas.no_text = str(
-            student["absen"]
-        )
-
+        self.canvas.no_text = f"No. {student['absen']}"
 
         self.canvas.draw()
 
