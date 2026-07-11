@@ -93,6 +93,12 @@ class MainWindow(tk.Tk):
             text="🔄 Reset Layout",
             command=self.canvas.reset_layout
         ).pack(side="left", padx=5)
+        
+        ttk.Button(
+            toolbar,
+            text="🚀 Generate Semua",
+            command=self.generate_all
+        ).pack(side="left", padx=5)
 
         self.status = ttk.Label(
             self,
@@ -286,3 +292,57 @@ class MainWindow(tk.Tk):
             text="Export selesai."
         )
         print("=== EXPORT SELESAI ===")
+        
+    def generate_all(self):
+
+        if not self.template_path:
+            print("Template belum dipilih")
+            return
+
+        if not self.font_path:
+            print("Font belum dipilih")
+            self.status.config(
+                text="Pilih font dahulu."
+            )
+            return
+
+        if not self.students:
+            print("Data siswa kosong")
+            self.status.config(
+                text="Data siswa kosong."
+            )
+            return
+
+        layout = self.canvas.get_layout()
+
+        for student in self.students:
+
+            name = student["nama"]
+            absen = str(student["absen"])
+
+            output_path = f"Output/{name}_{absen}.png"
+
+            self.exporter.export(
+                template_path=self.template_path,
+                output_path=output_path,
+
+                name=name,
+                absen=absen,
+
+                name_x=layout["nama"]["x"],
+                name_y=layout["nama"]["y"],
+
+                absen_x=layout["absen"]["x"],
+                absen_y=layout["absen"]["y"],
+
+                font_path=self.font_path,
+
+                name_font_size=self.canvas.name_font_size,
+                absen_font_size=self.canvas.absen_font_size
+            )
+
+        self.status.config(
+            text=f"Export selesai untuk {len(self.students)} siswa."
+        )
+        
+        print("===== GENERATE SELESAI =====")
