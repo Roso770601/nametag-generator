@@ -90,13 +90,6 @@ class MainWindow(tk.Tk):
         
         ttk.Button(
             toolbar,
-            text="🧪 Test Export",
-            command=self.test_export
-        ).pack(side="left", padx=5)
-
-
-        ttk.Button(
-            toolbar,
             text="🔄 Reset Layout",
             command=self.canvas.reset_layout
         ).pack(side="left", padx=5)
@@ -252,12 +245,17 @@ class MainWindow(tk.Tk):
         )
     def test_export(self):
 
+        print(">>> TEST EXPORT DIKLIK <<<")
+
         if not self.template_path:
+            print("Template belum dipilih")
             return
+
         if not self.font_path:
+            print("Font belum dipilih")
             self.status.config(
-            text="Pilih font dahulu."
-        )
+                text="Pilih font dahulu."
+            )
             return
         print("=== TEST EXPORT ===")
         print("CANVAS NAME :", self.canvas.name_text)
@@ -267,18 +265,22 @@ class MainWindow(tk.Tk):
         
         self.exporter.export(
             template_path=self.template_path,
-            output_path="output/test.png",
+            output_path="Output/test.png",
+
+            name=self.canvas.name_text,
+            absen=self.canvas.no_text,
 
             name_x=layout["nama"]["x"],
             name_y=layout["nama"]["y"],
+
             absen_x=layout["absen"]["x"],
             absen_y=layout["absen"]["y"],
 
             font_path=self.font_path,
-            
+
             name_font_size=self.canvas.name_font_size,
             absen_font_size=self.canvas.absen_font_size
-        )
+)
 
         self.status.config(
             text="Export selesai."
