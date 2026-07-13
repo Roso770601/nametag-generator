@@ -1,4 +1,5 @@
 def show_template(self):
+    from PIL import Image, ImageTk
 
     if not self.template_path:
         return
