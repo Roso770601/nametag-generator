@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageColor
 import os
 
 
@@ -31,8 +31,8 @@ class NameTagExporter:
         font_path,
         name_font_size=72,
         absen_font_size=56,
-        name_color="black",
-        absen_color="black"
+        name_color=(0, 0, 0),
+        absen_color=(0, 0, 0),
     ):
 
         # ==========================
@@ -81,6 +81,14 @@ class NameTagExporter:
 
         print("============================\n")
 
+        if isinstance(name_color, str):
+            name_color = ImageColor.getrgb(name_color)
+
+        if isinstance(absen_color, str):
+            absen_color = ImageColor.getrgb(absen_color)
+            
+        print("FINAL NAME COLOR:", name_color)
+        print("FINAL ABSEN COLOR:", absen_color)
         # ==========================
         # DRAW NAMA
         # ==========================
@@ -97,7 +105,7 @@ class NameTagExporter:
         # DRAW ABSEN
         # ==========================
 
-        absen_text = f"No. {absen}" if absen else "-"
+        absen_text = f"{absen}" if absen else "-"
 
         draw.text(
             (absen_px, absen_py),
@@ -111,7 +119,10 @@ class NameTagExporter:
         # SAVE
         # ==========================
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        folder = os.path.dirname(output_path)
+
+        if folder:
+            os.makedirs(folder, exist_ok=True)
         image.save(output_path)
 
         print("✅ EXPORT BERHASIL :", output_path)
